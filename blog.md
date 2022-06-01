@@ -1,4 +1,4 @@
-# Utilizing GCP Secret Manager Secrets in Cloud Functions via Terraform
+# Utilizing GCP Secret Manager Secrets in Cloud Functions with Terraform
 
 Whether you are writing a quick function to hit an API or developing the backend of your very own API, you will
 inevitably need to reference some form of secret within your serverless Cloud Function.  Up until now this was 
