@@ -33,7 +33,7 @@ resource "google_secret_manager_secret" "cf_secret" {
 Next we'll need to configure the IAM permissions for accessing this secret.  There's a few ways to do this in Terraform
 but they essentially accomplish the same functionality.
 
-Regardless of our methodology we need to create a Service Account for our Function:
+Regardless of our methodology we first need to create a Service Account for our function:
 ```hcl
 resource "google_service_account" "function_sa" {
   account_id  = "cloud-function-service-account"
@@ -42,7 +42,7 @@ resource "google_service_account" "function_sa" {
 ```
 
 Now we can bind that account to have special permissions for accessing only our secret, there are two ways to do this. 
-Either implementation is fine, just follow the conventions for your existing Terraform codebase
+Either implementation is fine, just follow the conventions of your existing Terraform codebase.
 
 1. IAM Conditions:
    ```hcl
@@ -73,7 +73,7 @@ Either implementation is fine, just follow the conventions for your existing Ter
 ## Cloud Function
 
 Now we need to actually create the function.  How you are managing your source code doesn't really matter here since the
-secret manager reference is directly in the function resource.
+Secret Manager reference is directly in the function resource.
 
 ```hcl
 resource "google_cloudfunctions_function" "function" {
@@ -97,9 +97,9 @@ resource "google_cloudfunctions_function" "function" {
 }
 ```
 
-Notably here we have to pass the `secret_id`attribute instead of the `id` or `name` of the secret, as the Terraform 
+Notably here we have to pass the `secret_id` attribute instead of the `id` or `name` of the secret, as the Terraform 
 documenatation describes.  The provider will construct the full resource path based on the project ID supplied to the 
-SDK which would only cause an incorrect resource path if fully passed in here. If you secret is in another project, you 
+SDK which would only cause an incorrect resource path if fully passed in here. If your secret is in another project, you 
 will need to also pass in a `project_id` field, though this is limited to the actual project ID number and not name. 
 Otherwise it is assumed the secret and function live in the same project.  To learn more about the project based 
 limitations of this functionality be sure to check the [official Terraform docs](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloudfunctions_function#nested_secret_environment_variables).
