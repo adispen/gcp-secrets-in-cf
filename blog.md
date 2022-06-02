@@ -6,7 +6,7 @@ accomplished in any number of ways, ranging from encoded environment variables t
 though, GCP Cloud Functions can now natively pull from Secret Manager allowing for a more secure and auditable way to 
 manage access from serverless functionality in your cloud environment.
 
-As of version 4.11.0 of the `google` Terraform provider, this functionality is now also available as part of your 
+As of version `4.11.0` of the `google` Terraform provider, this functionality is now also available as part of your 
 Infrastructure as Code deployment.  The following is a basic example of how to implement everything you might need
 to create and reference a Secret Manager secret securely from your Cloud Function.
 
@@ -36,7 +36,7 @@ but they essentially accomplish the same functionality.
 Regardless of our methodology we need to create a Service Account for our Function:
 ```hcl
 resource "google_service_account" "function_sa" {
-  account_id = "cloud-function-service-account"
+  account_id  = "cloud-function-service-account"
   description = "A Service Account for our Cloud Function"
 }
 ```
@@ -75,3 +75,64 @@ Either implementation is fine, just follow the conventions for your existing Ter
 Now we need to actually create the function.  How you are managing your source code doesn't really matter here since the
 secret manager reference is directly in the function resource.
 
+```hcl
+resource "google_cloudfunctions_function" "function" {
+   name        = "my-function"
+   description = "My function"
+   runtime     = "python39"
+
+   available_memory_mb   = 256
+   source_archive_bucket = google_storage_bucket.cf_bucket.name
+   source_archive_object = google_storage_bucket_object.cf_code_object.name
+   trigger_http          = true
+   entry_point           = "main"
+
+   service_account_email = google_service_account.function_sa.email
+
+   secret_environment_variables {
+      key     = "SECRET_KEY"
+      secret  = google_secret_manager_secret.cf_secret.secret_id
+      version = "latest"
+   }
+}
+```
+
+Notably here we have to pass the `secret_id`attribute instead of the `id` or `name` of the secret, as the Terraform 
+documenatation describes.  The provider will construct the full resource path based on the project ID supplied to the 
+SDK which would only cause an incorrect resource path if fully passed in here. If you secret is in another project, you 
+will need to also pass in a `project_id` field, though this is limited to the actual project ID number and not name. 
+Otherwise it is assumed the secret and function live in the same project.  To learn more about the project based 
+limitations of this functionality be sure to check the [official Terraform docs](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloudfunctions_function#nested_secret_environment_variables).
+
+**Note:** You should deploy the secret resource first, and create the secret version as you see fit *before* deploying 
+the Cloud Function.  If you attempt to deploy the Cloud Function while there is no appropriate secret version present
+the deployment will fail.
+
+
+Additionally, ensure you pass in the same Service Account we created above, which should have access to the secret 
+we created in the first few steps.
+
+When it comes to actually referencing your secret with your function code, it will look exactly the same as when using
+an environment variable with `os.environ.get()`.  As an example here is a brief python snippet of a function handler 
+that would reference the secret we pulled in using the above Terraform code:
+
+```python
+import os
+
+def main(request):
+    our_secret = os.environ.get('SECRET_KEY')
+    if our_secret:
+        return 'OK'
+    else:
+        print("The secret was not found, exiting.")
+        return None
+```
+
+Now you have a function that securely accesses your secrets via Secret Manager without having to mount any external volumes
+or use any external tooling, all while being managed through Terraform!
+
+## Links and References
+* [This blog as a repository, with code samples](https://github.com/adispen/gcp-secrets-in-cf)
+* [GCP Cloud Function Terraform Docs](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloudfunctions_function)
+* [GCP Secret Manager Secrets Terraform Docs](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/secret_manager_secret)
+* [GCP Secret Manager Best Practices Docs](https://cloud.google.com/secret-manager/docs/best-practices)
