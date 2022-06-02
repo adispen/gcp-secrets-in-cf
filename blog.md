@@ -15,7 +15,7 @@ permissions to affect changes in said environment.
 
 ## Secret Manager
 
-To start, we'll need to set up the [secret in Secret Manager](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/secret_manager_secret). 
+To start, we'll need to set up the [Secret Manager secret Terraform resource](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/secret_manager_secret). 
 You can name it and set up replications and zones however you see fit. Remember that you'll need to manually upload this
 secret in the console or use the [Secret Version resource](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/secret_manager_secret_version),
 though that has its own considerations you can read about [here](https://registry.terraform.io/language/state/sensitive-data).
@@ -70,9 +70,13 @@ Either implementation is fine, just follow the conventions of your existing Terr
    }
    ```
 
+**Note:** You should deploy the secret resource first, and create the secret version as you see fit *before* deploying
+the Cloud Function.  If you attempt to deploy the Cloud Function while there is no appropriate secret version present
+the deployment will fail.
+
 ## Cloud Function
 
-Now we need to actually create the function.  How you are managing your source code doesn't really matter here since the
+Now we need to actually create our function resource.  How you are managing your source code doesn't really matter here since the
 Secret Manager reference is directly in the function resource.
 
 ```hcl
@@ -103,14 +107,6 @@ SDK which would only cause an incorrect resource path if fully passed in here. I
 will need to also pass in a `project_id` field, though this is limited to the actual project ID number and not name. 
 Otherwise it is assumed the secret and function live in the same project.  To learn more about the project based 
 limitations of this functionality be sure to check the [official Terraform docs](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloudfunctions_function#nested_secret_environment_variables).
-
-**Note:** You should deploy the secret resource first, and create the secret version as you see fit *before* deploying 
-the Cloud Function.  If you attempt to deploy the Cloud Function while there is no appropriate secret version present
-the deployment will fail.
-
-
-Additionally, ensure you pass in the same Service Account we created above, which should have access to the secret 
-we created in the first few steps.
 
 When it comes to actually referencing your secret with your function code, it will look exactly the same as when using
 an environment variable with `os.environ.get()`.  As an example here is a brief python snippet of a function handler 
