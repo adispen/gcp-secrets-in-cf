@@ -8,7 +8,7 @@ manage access from serverless functionality in your cloud environment.
 
 As of version `4.11.0` of the `google` Terraform provider, this functionality is now also available as part of your 
 Infrastructure as Code deployment.  The following is a basic example of how to implement everything you might need
-to create and reference a Secret Manager secret securely from your Cloud Function.
+to create and reference a Secret Manager secret securely from your Cloud Function using Terraform.
 
 Our only assumption here is that you have an environment ready to go with all the necessary APIs enabled and the 
 permissions to affect changes in said environment.
@@ -130,6 +130,14 @@ def main(request):
 
 Now you have a function that securely accesses your secrets via Secret Manager without having to mount any external volumes
 or use any external tooling, all while being managed through Terraform!
+
+## Required APIs
+Be sure to enable the following in your desired project in order to use the features described in this blog.
+* Cloud Build API
+* Cloud Functions API
+* Cloud Logging API
+* Cloud Pub/Sub API
+* Secret Manager API
 
 ## Links and References
 * [This blog as a repository, with code samples](https://github.com/adispen/gcp-secrets-in-cf)
